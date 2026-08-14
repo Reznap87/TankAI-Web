@@ -1,0 +1,13 @@
+import test from "node:test";
+import assert from "node:assert/strict";
+import fs from "node:fs";
+const runtime=fs.readFileSync(new URL("../lib/deployment-controller.ts",import.meta.url),"utf8");
+const migration13=fs.readFileSync(new URL("../drizzle/0013_deployment_controller.sql",import.meta.url),"utf8");
+const migration14=fs.readFileSync(new URL("../drizzle/0014_react_control_plane.sql",import.meta.url),"utf8");
+const route=fs.readFileSync(new URL("../app/api/deployment/route.ts",import.meta.url),"utf8");
+const page=fs.readFileSync(new URL("../app/deployment/deployment-client.tsx",import.meta.url),"utf8");
+test("Deployment Controller binds releases to ordered provider chains",()=>{assert.match(runtime,/configuredProviders/);assert.match(runtime,/providerChain/);assert.match(runtime,/fallback_provider_ids_json/);assert.match(runtime,/config_sha256/)});
+test("Production requests use stable routing, attempts and append-only receipts",()=>{assert.match(runtime,/resolveTankBenchRelease/);assert.match(runtime,/deployment_requests/);assert.match(runtime,/deployment_request_attempts/);assert.match(runtime,/recordTankBenchCanaryObservation/);assert.match(migration13,/request_sha256/)});
+test("Circuit Breaker and manual traffic controls are persistent",()=>{assert.match(runtime,/acquireBreaker/);assert.match(runtime,/breakerAfterFailure/);assert.match(runtime,/setDeploymentTraffic/);assert.match(migration14,/deployment_circuit_breakers/);assert.match(migration14,/deployment_traffic_overrides/)});
+test("Deployment API exposes configure, execute, traffic and breaker actions",()=>{assert.match(route,/action === "configure"/);assert.match(route,/action === "execute"/);assert.match(route,/action === "set_traffic"/);assert.match(route,/action === "reset_breaker"/);assert.match(route,/requireApiIdentity/)});
+test("React control plane exposes live metrics, traces, fallback and circuit state",()=>{assert.match(page,/setInterval/);assert.match(page,/Provider-Kette/);assert.match(page,/CIRCUIT BREAKERS/);assert.match(page,/REQUEST TRACES/);assert.match(page,/Traffic atomar setzen/)});
